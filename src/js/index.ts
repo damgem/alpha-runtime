@@ -1,19 +1,10 @@
 import {parse, SyntaxError} from "./parser";
 import {Programm} from "./ParserTreeNodes";
 import CodeMirror from "codemirror";
+import RuntimeEnv from "./RuntimeEnv";
+import {safeQuerySelector} from "./DOMManipulators";
 
 console.log("hello there!");
-
-function alertError(msg: string): never {
-    window.alert(msg);
-    throw new Error(msg);
-}
-
-function safeQuerySelector<ElementType extends HTMLElement>(query: string): ElementType {
-    const element = document.querySelector(query);
-    if(element === null) alertError(`Critical Error: cannot find ${query} element!`);
-    return element as ElementType;
-}
 
 // init Code Mirror window
 var codeMirror = CodeMirror(safeQuerySelector('#codemirror'), {

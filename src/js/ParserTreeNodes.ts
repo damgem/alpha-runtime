@@ -2,6 +2,7 @@ import * as AST from "./AbstractTreeNodes";
 import AbstractOperation from "./AbstractOperation";
 import RuntimeEnv from "./RuntimeEnv";
 import {ExecutionError, SyntaxError, ExecutionEnd} from "./ExecutionError";
+import {safeQuerySelector} from "./DOMManipulators";
 
 // ---- Constant ----
 export class Constant<ValueType> implements AST.Evalueateable<ValueType>{
