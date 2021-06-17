@@ -1,14 +1,17 @@
 // ---- Programm ----
 Programm
-  = lines:CodeLine*
+  = lines:Line*
   {return new PST.Programm(lines);}
 
-
 // ---- CodeLine ----
+
+Line
+  = cl:CodeLine ("\n" / !.)
+  {return cl;}
+
 CodeLine
   = _ label:StringConstant _ ":" _ statement:Statement _ ";" _ {return new PST.CodeLine(label, statement);}
   / _ statement:Statement _ ";" _ {return new PST.CodeLine(null, statement);}
-
 
 // ---- Statement ----
 Statement
@@ -129,7 +132,7 @@ StringConstant
 
 // ---- Formatting ----
 _ "whitespace"
-  = [ \t\n\r]*
+  = [ \s\t]*
   
 __ "forced_whitespace"
-  = [ \t\n\r]+
+  = [ \s\t]+

@@ -20,7 +20,7 @@ declare global {
     interface Window {programm: Programm;}
 }
 
-window.programm = parse(codeMirror.getValue());
+//window.programm = parse(codeMirror.getValue());
 
 function compile(): void {
     try{
