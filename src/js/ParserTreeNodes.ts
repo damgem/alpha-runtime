@@ -206,14 +206,21 @@ export class Programm extends RuntimeEnv {
     step(): boolean {
         if(RuntimeEnv.isDead) return false;
         try {
-            this.codeLines[RuntimeEnv.instructionCounter].execute();    
-        } catch(ExecutionEnd) {
-            RuntimeEnv.isDead = true;
-            return false;
+            this.codeLines[RuntimeEnv.instructionCounter].execute();
+        } catch(err) {
+            if(err instanceof ExecutionEnd) {
+                RuntimeEnv.isDead = true;
+                return false;
+            }
+            throw err;
         }
-        RuntimeEnv.finishCodeLineExecution();
+        
+        if(RuntimeEnv.finishCodeLineExecution() === this.codeLines.length)
+            RuntimeEnv.isDead = true;
+        
+        console.log("Step!");
         return true;
     }
 
-    run() {while(this.step) {}}
+    run() {while(this.step()) {}}
 }

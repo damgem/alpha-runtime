@@ -3,6 +3,7 @@ import {stackProxyHandler, memoryProxyHandler} from "./ProxyHandlers";
 
 export default abstract class RuntimeEnv {
 
+    private static _isDead: boolean = false;
     private static _accumulator: number = 0;
     private static _instructionCounter: number = 0;
     private static instructionCounterManuallySet = false;
@@ -12,8 +13,10 @@ export default abstract class RuntimeEnv {
 
     protected static stack = new Proxy(RuntimeEnv._stack, stackProxyHandler);
     protected static memory = new Proxy(RuntimeEnv._memory, memoryProxyHandler);
-    
-    protected static isDead: boolean = false; 
+        
+    protected static get isDead(): boolean {return this._isDead;};
+    protected static set isDead(value: boolean) {console.log("Program dead = " + value); this._isDead = value;};
+
     protected static labels: {[label: string] : number};
 
     protected static get accumulator(): number {return this._accumulator;}
@@ -25,9 +28,16 @@ export default abstract class RuntimeEnv {
         this.instructionCounterManuallySet = true;
     }
 
-    protected static finishCodeLineExecution() {
-        if(this.instructionCounterManuallySet) this.instructionCounterManuallySet = false;
-        else this._instructionCounter++;
+    // returns the instruction counter only if it was not manually changed
+    // this is done so the programm can check if the last code line has been executed
+    // and therefore halt the programm
+    protected static finishCodeLineExecution(): number {
+        if(this.instructionCounterManuallySet){
+          this.instructionCounterManuallySet = false;
+          return -1;
+        }
+
+        return ++this._instructionCounter;
     }
 
     protected static throwError(msg: string) {

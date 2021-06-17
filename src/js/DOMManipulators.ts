@@ -25,7 +25,8 @@ export function rmStackEntry() {
 export function setRegisterValue(address: string, value: number) {
     let reg = document.getElementById("#register-memory-" + address);
     if(reg === null) {
-        reg = document.createElement("#register-memory-" + address);
+        reg = document.createElement("li");
+        reg.id = "#register-memory-" + address;
         registers.appendChild(reg);
     }
 

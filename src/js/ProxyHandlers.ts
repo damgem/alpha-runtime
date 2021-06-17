@@ -6,13 +6,13 @@ export const stackProxyHandler: ProxyHandler<number[]> = {
         console.log(`get [${String(p)}]`);
 
         if(p === "push") return (value: number) => {
-            target.push(value);
             DOM.addStackEntry(value);
+            target.push(value);
         };
 
         if(p === "pop") return () => {
-            target.pop();
             DOM.rmStackEntry();
+            return target.pop();
         };
 
         if(p === "length") return target.length;

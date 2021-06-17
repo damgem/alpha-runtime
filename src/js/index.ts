@@ -44,6 +44,9 @@ const register = safeQuerySelector('#register-body');
 const stack = safeQuerySelector('#stack-body');
 
 
-safeQuerySelector<HTMLButtonElement>('#btn-reset-runtime').onclick = () => register.innerText = stack.innerText = "";
+safeQuerySelector<HTMLButtonElement>('#btn-reset-runtime').onclick = () => {
+    register.innerText = stack.innerText = "";
+    RuntimeEnv.reset();
+};
 safeQuerySelector<HTMLButtonElement>('#btn-run').onclick = () => {compile(); window.programm.run();};
 safeQuerySelector<HTMLButtonElement>('#btn-step').onclick = () => window.programm.step();
