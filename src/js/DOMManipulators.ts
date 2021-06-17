@@ -9,7 +9,7 @@ export function safeQuerySelector<ElementType extends HTMLElement>(query: string
     return element as ElementType;
 }
 
-const register = safeQuerySelector('#register-body');
+const registers = safeQuerySelector('#register-body');
 const stack = safeQuerySelector('#stack-body');
 
 export function addStackEntry(value: number) {
@@ -20,4 +20,18 @@ export function addStackEntry(value: number) {
 
 export function rmStackEntry() {
     stack.lastChild!.remove();
+}
+
+export function setRegisterValue(address: string, value: number) {
+    let reg = document.getElementById("#register-memory-" + address);
+    if(reg === null) {
+        reg = document.createElement("#register-memory-" + address);
+        registers.appendChild(reg);
+    }
+
+    reg.innerText = `ρ(${address}) := ${value}`;
+}
+
+export function rmRegister(address: string) {
+    document.getElementById("#register-memory-" + address)!.remove();
 }

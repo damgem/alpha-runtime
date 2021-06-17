@@ -1,85 +1,71 @@
 
 import * as DOM from "./DOMManipulators";
 
-let stackProxyHandler: ProxyHandler<number[]> = {
-    apply(target: number[], thisArg: any, argArray: any[]): any {
-      console.log("apply")
-    },
-    construct(target: number[], argArray: any[], newTarget: Function): any {
-      console.log("apply");
-      return 0;
-    },
-    defineProperty(target: number[], p: string | symbol, attributes: PropertyDescriptor): boolean {
-      console.log("defineProperty");
-      return true;
-    },
-    deleteProperty(target: number[], p: string | symbol): boolean {
-      console.log("deleteProperty");
-      return true;
-    },
+export const stackProxyHandler: ProxyHandler<number[]> = {
     get(target: number[], p: string | symbol, receiver: any): any {
-      console.log(`get [${String(p)}]`);
+        console.log(`get [${String(p)}]`);
 
-      if(p === "push") return (value: number) => {
-        target.push(value);
-        DOM.addStackEntry(value);
-      };
+        if(p === "push") return (value: number) => {
+            target.push(value);
+            DOM.addStackEntry(value);
+        };
 
-      if(p === "pop") return () => {
-        target.pop();
-        DOM.rmStackEntry();
-      };
+        if(p === "pop") return () => {
+            target.pop();
+            DOM.rmStackEntry();
+        };
 
-      if(p === "length") return target.length;
+        if(p === "length") return target.length;
 
-      if(typeof(p) === "number") {
-        return target[p];
-      }
+        if(typeof(p) === "number") {
+            return target[p];
+        }
 
-      console.log("undefined property " + String(p));
-      return undefined;
+        console.log("undefined property " + String(p));
+        return undefined;
     },
     has(target: number[], p: string | symbol): boolean {
-      console.log("has");
-      return true;
+        console.log("has");
+        return true;
     },
     set(target: number[], p: string | symbol, value: any, receiver: any): boolean {
-      console.log(`set [${String(p)}] = ${value}`);
-
-      if(p == "length") {
-        target.length = value;
-        return true;
-      }
-
-      if(typeof(p) === "number") {
-        target[p] = value;
-        return true;
-      }        
-
-      return false;
+        console.log(`set [${String(p)}] = ${value}`);
+        if(p == "length") {
+            target.length = value;
+            return true;
+        }
+        if(typeof(p) === "number") {
+            target[p] = value;
+            return true;
+        }        
+        return false;
     }
 };
 
-let memoryProxyHandler: ProxyHandler<{[address: string] : number}> = {
+export const memoryProxyHandler: ProxyHandler<{[address: string] : number}> = {
     deleteProperty(target: {[address: string] : number}, p: string | symbol): boolean {
-      console.log("deleteProperty " + String(p));
-      if(!(String(p) in target)) return false;
-      delete target[String(p)];
-      return true;
+        if(typeof(p) === "symbol") p = String(p);
+        console.log("deleteProperty " + p);
+        if(!(p in target)) return false;
+        delete target[p];
+        DOM.rmRegister(p);
+        return true;
     },
     get(target: {[address: string] : number}, p: string | symbol, receiver: any): any {
-      console.log(`get [${String(p)}]`);
-      return target[String(p)];
+        if(typeof(p) === "symbol") p = String(p);
+        console.log(`get [${p}]`);
+        return target[p];
     },
     has(target: {[address: string] : number}, p: string | symbol): boolean {
-      console.log(`has [${String(p)}]`);
-      return p in target;
+        if(typeof(p) === "symbol") p = String(p);
+        console.log(`has [${p}]`);
+        return p in target;
     },
     set(target: {[address: string] : number}, p: string | symbol, value: any, receiver: any): boolean {
-      console.log(`set [${String(p)}] = ${value}`);
-      target[String(p)] = value;
-      return true;
+        if(typeof(p) === "symbol") p = String(p);
+        console.log(`set [${p}] = ${value}`);
+        target[p] = value;
+        DOM.setRegisterValue(p, value);
+        return true;
     }
 };
-
-export {stackProxyHandler, memoryProxyHandler};
