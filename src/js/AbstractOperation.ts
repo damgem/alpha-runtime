@@ -1,4 +1,4 @@
-import * as AST from "./AST";
+import * as AST from "./AbstractTreeNodes";
 
 export default abstract class Operation<OperatorType, ValueType> implements AST.Evalueateable<ValueType> {
     protected operator: OperatorType;
@@ -9,10 +9,6 @@ export default abstract class Operation<OperatorType, ValueType> implements AST.
         this.operator = operator;
         this.left = left;
         this.right = right;
-    }
-
-    toString() {
-        
     }
 
     abstract evaluate(): ValueType;

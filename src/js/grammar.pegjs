@@ -1,13 +1,13 @@
 // ---- Programm ----
 Programm
   = lines:CodeLine*
-  {return lines;}
+  {return new PST.Programm(lines);}
 
 
 // ---- CodeLine ----
 CodeLine
-  = (label:StringConstant ":")? statement:Statement ";"
-  {return new CodeLine(label, statement); }
+  = _ label:StringConstant _ ":" _ statement:Statement _ ";" _ {return new PST.CodeLine(label, statement);}
+  / _ statement:Statement _ ";" _ {return new PST.CodeLine(null, statement);}
 
 
 // ---- Statement ----
@@ -22,7 +22,7 @@ ControlStatement
 
 IfStatement
   = "if" __ condition:BooleanOperation __ "then" __ code:LinearStatement
-  {return new IfStatement(condition, code);}
+  {return new PST.IfStatement(condition, code);}
 
 
 // ---- Linear Statements ----
@@ -36,42 +36,42 @@ LinearStatement
   / StackOperationStatement
 
 AssignStatement
-  = register:Register ":=" value:NumericValue
-  {return new AssignStatement(register, value);}
+  = register:Register _ ":=" _ value:NumericValue
+  {return new PST.AssignStatement(register, value);}
 
 GotoStatement
   = "goto" __ label:UncomputedValue
-  {return new GotoStatement(label);}
+  {return new PST.GotoStatement(label);}
 
 CallStatement
   = "call" __ label:UncomputedValue
-  {return new CallStatement(label);}
+  {return new PST.CallStatement(label);}
 
 ReturnStatement
   = "return"
-  {return new ReturnStatement();}
+  {return new PST.ReturnStatement();}
 
 PushStatement
-  = "push"
-  {return new PushStatement();}
-
+  = "push" _? value:(NumericValue / Register)?
+  {return new PST.PushStatement(value);}
+  
 PopStatement
-  = "pop"
-  {return new PopStatement();}
+  = "pop" _? value:(Register)?
+  {return new PST.PopStatement(value);}
 
 StackOperationStatement
   = "stack" _ op:NumericOperatator
-  {return StackOperationStatement(op);}
+  {return new PST.StackOperationStatement(op);}
 
 
 // ---- (Inline) Operations ----
 NumericOperation
   = left: UncomputedNumericValue _ op: NumericOperatator _ right: UncomputedNumericValue
-  {return new NumericOperation(op, left, right);}
+  {return new PST.NumericOperation(op, left, right);}
 
 BooleanOperation
   = left:UncomputedNumericValue _ op:BooleanOperator _ right: UncomputedNumericValue
-  {return new BooleanOperation(op, left, right);}
+  {return new PST.BooleanOperation(op, left, right);}
 
 NumericOperatator
   = "+" / "-" / "*" / "/" / "%";
@@ -87,11 +87,11 @@ Register
 
 MemoryRegister
   = ("ρ" / "rho" / "p") _ "(" _ address:(UncomputedValue) _ ")"
-  {return new MemoryCell(address);}
+  {return new PST.MemoryRegister(address);}
 
 Accumulator
   = "α" / "alpha" / "a"
-  {return new Accumulator();}
+  {return new PST.Accumulator();}
 
 
 // ---- Values ----
@@ -104,8 +104,8 @@ UncomputedValue
   / UncomputedStringValue
 
 NumericValue
-  = UncomputedNumericValue
-  / NumericOperation
+  = NumericOperation
+  / UncomputedNumericValue
 
 UncomputedNumericValue
   = Register
@@ -121,11 +121,11 @@ UncomputedStringValue
 // ---- Constants ----
 NumericConstant
   = digits:[0-9]+
-  {return new Constant<number>(parseInt(digits.join(''), 10));}
+  {return new PST.Constant<number>(parseInt(digits.join(''), 10));}
 
 StringConstant
   = text:[a-zA-Z0-9_]+
-  {return new Constant<string>(text.join(''));}
+  {return new PST.Constant<string>(text.join(''));}
 
 // ---- Formatting ----
 _ "whitespace"
