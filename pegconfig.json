@@ -1,5 +1,0 @@
-{
-    "tspegjs": {
-        "customHeader": "// import lib\nimport * as PST from './ParserTreeNodes';"
-    }
-}
