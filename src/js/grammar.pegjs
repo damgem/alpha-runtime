@@ -10,8 +10,12 @@ Line
   {return cl;}
 
 CodeLine
-  = _ label:StringConstant _ ":" _ statement:Statement _ ";" _ {return new PST.CodeLine(label, statement);}
-  / _ statement:Statement _ ";" _ {return new PST.CodeLine(null, statement);}
+  = _ label:Label? _ statement:Statement _ ";" _
+  {return new PST.CodeLine(label?label:null, statement);}
+  
+Label
+  = label:StringConstant _ ":"
+  {return label;}
 
 // ---- Statement ----
 Statement
