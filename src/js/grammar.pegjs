@@ -1,10 +1,8 @@
 // ---- Programm ----
 Programm
   = lines:Line*
-  {return new PST.Programm(lines);}
 
 // ---- CodeLine ----
-
 Line
   = cl:CodeLine ("\n" / !.)
   {return cl;}
@@ -14,7 +12,7 @@ CodeLine
   {return new PST.CodeLine(label?label:null, statement);}
   
 Label
-  = label:StringConstant _ ":"
+  = label:StringConstant _ ":" !(_ "=")
   {return label;}
 
 // ---- Statement ----

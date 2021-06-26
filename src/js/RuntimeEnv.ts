@@ -1,60 +1,64 @@
-import * as DOM from "./DOMManipulators";
-import {stackProxyHandler, memoryProxyHandler} from "./ProxyHandlers";
+import {StackCallback, MapCallback, OberservableStack, OberservableMap} from './Observables';
 
-export default abstract class RuntimeEnv {
+type onChangeCallback<T> = (oldValue: T, newValue: T) => void;
 
-    private static _isDead: boolean = false;
-    private static _accumulator: number = 0;
-    private static _instructionCounter: number = 0;
-    private static instructionCounterManuallySet = false;
+interface RuntimeEnvCallbacks {
+    onStackPush?: StackCallback<number>;
+    onStackPop?:  StackCallback<number>;
+    onMemoryInsert?: MapCallback<string, number>;
+    onMemoryChange?: MapCallback<string, number>;
+    onIsRunningChange?: onChangeCallback<boolean>
+    onAccumulatorChange?: onChangeCallback<number>
+    onInstructionPointerChange?: onChangeCallback<number>
+}
 
-    private static _stack: number[] = [];
-    private static _memory: {[address: string] : number} = {};
+export default class RuntimeEnv {
 
-    protected static stack = new Proxy(RuntimeEnv._stack, stackProxyHandler);
-    protected static memory = new Proxy(RuntimeEnv._memory, memoryProxyHandler);
-        
-    protected static get isDead(): boolean {return this._isDead;};
-    protected static set isDead(value: boolean) {console.log("Program dead = " + value); this._isDead = value;};
+    public constructor(callbacks: RuntimeEnvCallbacks) {
+        this.stack = new OberservableStack(callbacks.onStackPush, callbacks.onStackPop);
+        this.memory = new OberservableMap(callbacks.onMemoryInsert, callbacks.onMemoryChange);
+        this.callbacks = callbacks;
+    }
+    
+    private _isRunning: boolean = false;
+    private _accumulator: number = 0;
+    private _instructionCounter: number = 0;
+    private callbacks: RuntimeEnvCallbacks;
+    
+    protected gotoPerformed = false;
 
-    protected static labels: {[label: string] : number};
+    public labels: {[label: string] : number} = {};
+    public stack: OberservableStack<number>;
+    public memory: OberservableMap<string, number>;
 
-    protected static get accumulator(): number {return this._accumulator;}
-    protected static set accumulator(value: number) {this._accumulator = value;}
+    public get isRunning(): boolean         {return this._isRunning;};
+    public get accumulator(): number        {return this._accumulator;}
+    public get instructionCounter(): number {return this._instructionCounter;}
 
-    protected static get instructionCounter(): number {return this._instructionCounter;}
-    protected static set instructionCounter(value: number) {
+    public set isRunning(value: boolean) {
+        if(value == this._isRunning) return;
+        this.callbacks.onIsRunningChange?.(this._isRunning, value);
+        this._isRunning = value;
+    };
+
+    public set accumulator(value: number) {
+        if(value == this._accumulator) return;
+        this.callbacks.onAccumulatorChange?.(this._accumulator, value);
+        this._accumulator = value;
+    }
+
+    public set instructionCounter(value: number) {
+        if(this.gotoPerformed) this.error("moving instrction counter twice without ending previous code line!");
+        this.gotoPerformed = true;
+        this.callbacks.onInstructionPointerChange?.(this._instructionCounter, value);
         this._instructionCounter = value;
-        this.instructionCounterManuallySet = true;
     }
 
-    // returns the instruction counter only if it was not manually changed
-    // this is done so the programm can check if the last code line has been executed
-    // and therefore halt the programm
-    protected static finishCodeLineExecution(): number {
-        if(this.instructionCounterManuallySet){
-          this.instructionCounterManuallySet = false;
-          return -1;
-        }
-
-        return ++this._instructionCounter;
-    }
-
-    protected static throwError(msg: string) {
+    public error(msg: string) {
         console.warn(msg);
     }
 
-    public static reset() {
-        this._accumulator = 0;
-        this._instructionCounter = 0;
-        this.instructionCounterManuallySet = false;
-        this._stack.length = 0;
-        for (let reg in this._memory) {
-            if (this._memory.hasOwnProperty(reg)) {
-                delete this._memory[reg];
-            }
-        }
-        this.isDead = false; 
-        this.labels = {};
+    public log(msg: string) {
+        console.log(msg);
     }
 };

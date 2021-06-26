@@ -2,50 +2,40 @@ import * as AST from "./AbstractTreeNodes";
 import AbstractOperation from "./AbstractOperation";
 import RuntimeEnv from "./RuntimeEnv";
 import {ExecutionError, SyntaxError, ExecutionEnd} from "./ExecutionError";
-import {safeQuerySelector} from "./DOMManipulators";
 
 // ---- Constant ----
 export class Constant<ValueType> implements AST.Evalueateable<ValueType>{
     private value: ValueType;
     constructor(value: ValueType) {this.value = value;}
+
     evaluate() {return this.value;}
 }
 
 // ---- Register ----
-export class MemoryRegister extends RuntimeEnv implements AST.Register  {
+export class MemoryRegister implements AST.Register  {
     private address: AST.Evalueateable<AST.Value>;
-    
-    constructor(address: AST.Evalueateable<AST.Value>) {
-        super();
-        this.address = address;
+    constructor(address: AST.Evalueateable<AST.Value>) {this.address = address;}
+
+    evaluate(re: RuntimeEnv) {
+        return re.memory.get(String(this.address.evaluate(re)));
     }
 
-    evaluate() {
-        let addressValue = this.address.evaluate();
-        if(typeof(addressValue) === 'number') addressValue = String(addressValue);
-
-        return RuntimeEnv.memory[this.address.evaluate()];
-    }
-
-    set(value: number) {
-        let addressValue = this.address.evaluate();
-        if(typeof(addressValue) === 'number') addressValue = String(addressValue);
-        
-        RuntimeEnv.memory[addressValue] = value;
+    set(value: number, re: RuntimeEnv) {
+        re.memory.set(String(this.address.evaluate(re)), value);
     }
 }
 
-export class Accumulator extends RuntimeEnv implements AST.Register {
-    evaluate() {return RuntimeEnv.accumulator;}
-    set(value: number){RuntimeEnv.accumulator = value;}
+export class Accumulator implements AST.Register {
+    evaluate(re: RuntimeEnv) {return re.accumulator;}
+    set(value: number, re: RuntimeEnv){re.accumulator = value;}
 }
 
 // ---- Operations ----
 type NumericOperator = '+' | '-' | '*' | '/' | '%';
 export class NumericOperation extends AbstractOperation<NumericOperator, number> {
-    evaluate() {
-        let l = this.left.evaluate();
-        let r = this.right.evaluate();
+    evaluate(re: RuntimeEnv) {
+        let l = this.left.evaluate(re);
+        let r = this.right.evaluate(re);
         switch(this.operator) {
             case '+': return l + r;
             case '-': return l - r;
@@ -58,38 +48,36 @@ export class NumericOperation extends AbstractOperation<NumericOperator, number>
 
 type BooleanOperator = '=' | '>' | '>=' | '<' | '<=';
 export class BooleanOperation extends AbstractOperation<BooleanOperator, boolean> {
-    evaluate() {
+    evaluate(re: RuntimeEnv) {
+        let l = this.left.evaluate(re);
+        let r = this.right.evaluate(re);
         switch(this.operator) {
-            case '=':  return this.left.evaluate() === this.right.evaluate();
-            case '>':  return this.left.evaluate() >   this.right.evaluate();
-            case '>=': return this.left.evaluate() >=  this.right.evaluate();
-            case '<':  return this.left.evaluate() <   this.right.evaluate();
-            case '<=': return this.left.evaluate() <=  this.right.evaluate();
+            case '=':  return l === r;
+            case '>':  return l > r;
+            case '>=': return l >= r;
+            case '<':  return l < r;
+            case '<=': return l <= r;
         }
     }
 }
 
 // ---- Statements ----
-export class GotoStatement extends RuntimeEnv implements AST.Executable {
+export class GotoStatement implements AST.Executable {
     label: AST.Evalueateable<AST.Value>
+    constructor(label: AST.Evalueateable<AST.Value>) {this.label = label;}
 
-    constructor(label: AST.Evalueateable<AST.Value>) {
-        super();
-        this.label = label;
-    }
-
-    execute() {
-        let labelValue = this.label.evaluate();
+    execute(re: RuntimeEnv) {
+        let labelValue = this.label.evaluate(re);
         if(typeof(labelValue) === 'number') labelValue = String(labelValue);
-        if(!(labelValue in RuntimeEnv.labels)) throw new ExecutionError(`Undefined Label ${labelValue}`);
-        RuntimeEnv.instructionCounter = RuntimeEnv.labels[labelValue];
+        if(!(labelValue in re.labels)) throw new ExecutionError(`Undefined Label ${labelValue}`);
+        re.instructionCounter = re.labels[labelValue];
     }
 }
 
 export class CallStatement extends GotoStatement {
-    execute() {
-        RuntimeEnv.stack.push(RuntimeEnv.instructionCounter);
-        super.execute();
+    execute(re: RuntimeEnv) {
+        re.stack.push(re.instructionCounter);
+        super.execute(re);
     }
 }
 
@@ -102,7 +90,7 @@ export class AssignStatement implements AST.Executable {
         this.value = value;
     }
 
-    execute() {this.register.set(this.value.evaluate());}
+    execute(re: RuntimeEnv) {this.register.set(this.value.evaluate(re), re);}
 }
 
 export class IfStatement implements AST.Executable {
@@ -114,113 +102,55 @@ export class IfStatement implements AST.Executable {
         this.code = code;
     }
 
-    execute() {if(this.condition.evaluate()) this.code.execute();}
+    execute(re: RuntimeEnv) {if(this.condition.evaluate(re)) this.code.execute(re);}
 }
 
-export class ReturnStatement extends RuntimeEnv implements AST.Executable {
-    execute() {
-        let returnAddress = RuntimeEnv.stack.pop();
+export class ReturnStatement implements AST.Executable {
+    execute(re: RuntimeEnv) {
+        let returnAddress = re.stack.pop();
         // end execution when final return is requested
         if(returnAddress === undefined) throw new ExecutionEnd();
-        RuntimeEnv.instructionCounter = returnAddress;
+        re.instructionCounter = returnAddress;
     }
 }
 
-export class PushStatement extends RuntimeEnv implements AST.Executable {
+export class PushStatement implements AST.Executable {
     private value: AST.Evalueateable<number>;
+    constructor(value?: AST.Evalueateable<number>) {this.value = value ?? new Accumulator();}
 
-    constructor(value: AST.Evalueateable<number>) {
-        super();
-        this.value = value ?? new Accumulator();
-    }
-
-    execute() {RuntimeEnv.stack.push(this.value.evaluate());}
+    execute(re: RuntimeEnv) {re.stack.push(this.value.evaluate(re));}
 }
 
-export class PopStatement extends RuntimeEnv implements AST.Executable {
+export class PopStatement implements AST.Executable {
     private register: AST.Register;
+    constructor(register: AST.Register) {this.register = register ?? new Accumulator();}
 
-    constructor(register: AST.Register) {
-        super();
-        this.register = register ?? new Accumulator();
-    }
-
-    execute() {
-        let poppedValue = RuntimeEnv.stack.pop();
-        if(poppedValue === undefined) throw new ExecutionError("Cannot pop from empty stack");
-        this.register.set(poppedValue);
-    }
+    execute(re: RuntimeEnv) {this.register.set(re.stack.pop(), re);}
 }
 
-class StackPopper extends RuntimeEnv implements AST.Evalueateable<number> {
-    evaluate() {
-        let poppedValue = RuntimeEnv.stack.pop();
-        if(poppedValue === undefined) throw new ExecutionError("Cannot pop from empty stack");
-        return poppedValue;
-    }
+class StackPopper implements AST.Evalueateable<number> {
+    evaluate(re: RuntimeEnv) {return re.stack.pop();}
 }
 
-export class StackOperationStatement extends RuntimeEnv implements AST.Executable {
+export class StackOperationStatement implements AST.Executable {
     private operation: NumericOperation;
-
-    constructor(operator: NumericOperator) {
-        super();
-        this.operation = new NumericOperation(operator, new StackPopper(), new StackPopper());
-    }
+    constructor(operator: NumericOperator) {this.operation = new NumericOperation(operator, new StackPopper(), new StackPopper());}
     
-    execute() {
-        if(RuntimeEnv.stack.length < 2) throw new Error("Cannot execute stack operation with less than 2 elements on the stack");
-        RuntimeEnv.stack.push(this.operation.evaluate());
+    execute(re: RuntimeEnv) {
+        if(re.stack.size < 2) throw new Error("Cannot execute stack operation with less than 2 elements on the stack");
+        re.stack.push(this.operation.evaluate(re));
     }
 }
 
 // ---- CodeLine ----
 export class CodeLine implements AST.Executable {
-    
-    public readonly label: string | null;
+    public readonly label?: string;
     private code: AST.Executable;
 
-    constructor(label: string | null, code: AST.Executable) {
+    constructor(label: string | undefined, code: AST.Executable) {
         this.label = label;
         this.code = code;
     }
     
-    execute() {this.code.execute();}
-}
-
-// ---- Programm ----
-export class Programm extends RuntimeEnv {
-    private codeLines: [CodeLine];
-
-    constructor(codeLines: [CodeLine]){
-        super();
-        this.codeLines = codeLines;
-        for(let li: number = 0; li < this.codeLines.length; li++){
-            const cl = this.codeLines[li];
-            if(cl.label == null) continue;
-            if(cl.label in RuntimeEnv.labels) throw new SyntaxError(`Cannot define lable twice ${cl.label}`);
-            RuntimeEnv.labels[cl.label] = li;
-        };
-    }
-
-    step(): boolean {
-        if(RuntimeEnv.isDead) return false;
-        try {
-            this.codeLines[RuntimeEnv.instructionCounter].execute();
-        } catch(err) {
-            if(err instanceof ExecutionEnd) {
-                RuntimeEnv.isDead = true;
-                return false;
-            }
-            throw err;
-        }
-        
-        if(RuntimeEnv.finishCodeLineExecution() === this.codeLines.length)
-            RuntimeEnv.isDead = true;
-        
-        console.log("Step!");
-        return true;
-    }
-
-    run() {while(this.step()) {}}
+    execute(re: RuntimeEnv) {this.code.execute(re);}
 }
