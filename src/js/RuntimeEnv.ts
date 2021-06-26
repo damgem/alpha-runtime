@@ -20,7 +20,7 @@ export default class RuntimeEnv {
         this.callbacks = callbacks;
     }
     
-    private _isRunning: boolean = false;
+    private _isRunning: boolean = true;
     private _accumulator: number = 0;
     private _instructionCounter: number = 0;
     private callbacks: RuntimeEnvCallbacks;

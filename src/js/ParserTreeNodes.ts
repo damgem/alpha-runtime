@@ -8,7 +8,7 @@ export class Constant<ValueType> implements AST.Evalueateable<ValueType>{
     private value: ValueType;
     constructor(value: ValueType) {this.value = value;}
 
-    evaluate() {return this.value;}
+    evaluate(re?: RuntimeEnv) {return this.value;}
 }
 
 // ---- Register ----
@@ -30,9 +30,14 @@ export class Accumulator implements AST.Register {
     set(value: number, re: RuntimeEnv){re.accumulator = value;}
 }
 
+export class StackTop implements AST.Register {
+    evaluate(re: RuntimeEnv) {return re.stack.pop();}
+    set(value: number, re: RuntimeEnv){re.stack.push(value);}
+}
+
 // ---- Operations ----
 type NumericOperator = '+' | '-' | '*' | '/' | '%';
-export class NumericOperation extends AbstractOperation<NumericOperator, number> {
+export class NumericOperation extends AbstractOperation<NumericOperator, number, number> {
     evaluate(re: RuntimeEnv) {
         let l = this.left.evaluate(re);
         let r = this.right.evaluate(re);
@@ -47,7 +52,7 @@ export class NumericOperation extends AbstractOperation<NumericOperator, number>
 }
 
 type BooleanOperator = '=' | '>' | '>=' | '<' | '<=';
-export class BooleanOperation extends AbstractOperation<BooleanOperator, boolean> {
+export class BooleanOperation extends AbstractOperation<BooleanOperator, number, boolean> {
     evaluate(re: RuntimeEnv) {
         let l = this.left.evaluate(re);
         let r = this.right.evaluate(re);
@@ -68,8 +73,12 @@ export class GotoStatement implements AST.Executable {
 
     execute(re: RuntimeEnv) {
         let labelValue = this.label.evaluate(re);
-        if(typeof(labelValue) === 'number') labelValue = String(labelValue);
-        if(!(labelValue in re.labels)) throw new ExecutionError(`Undefined Label ${labelValue}`);
+        if(typeof(labelValue) === 'number') {
+            re.instructionCounter = labelValue;
+            return;
+        }
+        if(!(labelValue in re.labels))
+            throw new ExecutionError(`Undefined Label ${labelValue}`);
         re.instructionCounter = re.labels[labelValue];
     }
 }
@@ -94,10 +103,10 @@ export class AssignStatement implements AST.Executable {
 }
 
 export class IfStatement implements AST.Executable {
-    private condition: BooleanOperation;
+    private condition: AST.Evalueateable<boolean>;
     private code: AST.Executable;
 
-    constructor(condition: BooleanOperation, code: AST.Executable) {
+    constructor(condition: AST.Evalueateable<boolean>, code: AST.Executable) {
         this.condition = condition;
         this.code = code;
     }
@@ -107,10 +116,11 @@ export class IfStatement implements AST.Executable {
 
 export class ReturnStatement implements AST.Executable {
     execute(re: RuntimeEnv) {
-        let returnAddress = re.stack.pop();
-        // end execution when final return is requested
-        if(returnAddress === undefined) throw new ExecutionEnd();
-        re.instructionCounter = returnAddress;
+        if(re.stack.isEmpty) {
+            re.isRunning = false;
+            return;
+        }
+        re.instructionCounter = re.stack.pop();
     }
 }
 
@@ -128,17 +138,25 @@ export class PopStatement implements AST.Executable {
     execute(re: RuntimeEnv) {this.register.set(re.stack.pop(), re);}
 }
 
-class StackPopper implements AST.Evalueateable<number> {
-    evaluate(re: RuntimeEnv) {return re.stack.pop();}
-}
-
-export class StackOperationStatement implements AST.Executable {
-    private operation: NumericOperation;
-    constructor(operator: NumericOperator) {this.operation = new NumericOperation(operator, new StackPopper(), new StackPopper());}
+export class NumericStackOperationStatement extends NumericOperation implements AST.Executable {
+    constructor(operator: NumericOperator) {
+        super(operator, new StackTop(), new StackTop());
+    }
     
     execute(re: RuntimeEnv) {
         if(re.stack.size < 2) throw new Error("Cannot execute stack operation with less than 2 elements on the stack");
-        re.stack.push(this.operation.evaluate(re));
+        re.stack.push(super.evaluate(re));
+    }
+}
+
+export class BooleanStackOperationStatement extends BooleanOperation implements AST.Executable {
+    constructor(operator: BooleanOperator) {
+        super(operator, new StackTop(), new StackTop());
+    }
+    
+    execute(re: RuntimeEnv) {
+        if(re.stack.size < 2) throw new Error("Cannot execute stack operation with less than 2 elements on the stack");
+        re.stack.push(super.evaluate(re) ? 1 : 0);
     }
 }
 
@@ -148,7 +166,8 @@ export class CodeLine implements AST.Executable {
     private code: AST.Executable;
 
     constructor(label: string | undefined, code: AST.Executable) {
-        this.label = label;
+        this.label = label?.trim();
+        if(this.label == "") this.label = undefined;
         this.code = code;
     }
     
