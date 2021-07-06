@@ -1,7 +1,6 @@
-import { Evalueateable } from "./AbstractTreeNodes";
-import RuntimeEnv from "./RuntimeEnv";
+import Runtime, {Evalueateable} from "./Abstract";
 
-export default abstract class Operation<O, V, R> implements Evalueateable<R> {
+export default abstract class Operation<A, OperatorType, InputValueType, OutputValueType, L> implements Evalueateable<A> {
     protected operator: O;
     protected left: Evalueateable<V>;
     protected right: Evalueateable<V>;
@@ -12,5 +11,5 @@ export default abstract class Operation<O, V, R> implements Evalueateable<R> {
         this.right = right;
     }
 
-    abstract evaluate(re: RuntimeEnv): R;
+    abstract evaluate(re: RuntimeCore): R;
 }

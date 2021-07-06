@@ -1,64 +1,54 @@
-import {StackCallback, MapCallback, OberservableStack, OberservableMap} from './Observables';
-
-type onChangeCallback<T> = (oldValue: T, newValue: T) => void;
-
-interface RuntimeEnvCallbacks {
-    onStackPush?: StackCallback<number>;
-    onStackPop?:  StackCallback<number>;
-    onMemoryInsert?: MapCallback<string, number>;
-    onMemoryChange?: MapCallback<string, number>;
-    onIsRunningChange?: onChangeCallback<boolean>
-    onAccumulatorChange?: onChangeCallback<number>
-    onInstructionPointerChange?: onChangeCallback<number>
-}
+import RuntimeCore, { RuntimeCallbacks } from './RuntimeCore'
+import { CodeLine } from './ParserTreeNodes';
+import { Executable } from './AbstractTreeNodes';
 
 export default class RuntimeEnv {
 
-    public constructor(callbacks: RuntimeEnvCallbacks) {
-        this.stack = new OberservableStack(callbacks.onStackPush, callbacks.onStackPop);
-        this.memory = new OberservableMap(callbacks.onMemoryInsert, callbacks.onMemoryChange);
-        this.callbacks = callbacks;
-    }
-    
-    private _isRunning: boolean = true;
-    private _accumulator: number = 0;
-    private _instructionCounter: number = 0;
-    private callbacks: RuntimeEnvCallbacks;
-    
-    protected gotoPerformed = false;
+    private core: RuntimeCore;
+    codeLines: CodeLine[] = [];
 
-    public labels: {[label: string] : number} = {};
-    public stack: OberservableStack<number>;
-    public memory: OberservableMap<string, number>;
-
-    public get isRunning(): boolean         {return this._isRunning;};
-    public get accumulator(): number        {return this._accumulator;}
-    public get instructionCounter(): number {return this._instructionCounter;}
-
-    public set isRunning(value: boolean) {
-        if(value == this._isRunning) return;
-        this.callbacks.onIsRunningChange?.(this._isRunning, value);
-        this._isRunning = value;
-    };
-
-    public set accumulator(value: number) {
-        if(value == this._accumulator) return;
-        this.callbacks.onAccumulatorChange?.(this._accumulator, value);
-        this._accumulator = value;
+    constructor(callbacks: RuntimeCallbacks) {
+        this.core = new RuntimeCore(callbacks);
     }
 
-    public set instructionCounter(value: number) {
-        if(this.gotoPerformed) this.error("moving instrction counter twice without ending previous code line!");
-        this.gotoPerformed = true;
-        this.callbacks.onInstructionPointerChange?.(this._instructionCounter, value);
-        this._instructionCounter = value;
+    /** Loads a program into program memory and builds the labels index.
+     * @param codeLines a list of CodeLines that resemble the program in that order. 
+     */
+    public load(codeLines: CodeLine[]) {
+        this.codeLines = codeLines;
+        this.core.labels = {};
+        for(let cli = 0; cli < codeLines.length; cli++) {
+            let label = codeLines[cli].label;
+            if(label !== undefined) {this.core.labels[label] = cli;}
+        }
     }
 
-    public error(msg: string) {
-        console.warn(msg);
+    public run() {
+        if(!this.codeLines.length) this.core.isRunning = false;
+        while(this.core.isRunning) {
+            this.step();
+        }
     }
 
-    public log(msg: string) {
-        console.log(msg);
+    public step(): void {
+        if(!this.core.isRunning) return;
+        
+        let lineNumber: number = this.core.instructionCounter;
+        try{
+            this.codeLines[lineNumber].execute(this.core);
+            this.finishStatementExecution();
+        } catch(error) {
+            this.core.isRunning = false;
+            this.core.error(error);
+        }
     }
-};
+
+    protected finishStatementExecution() {
+        if(this.core.instructionCounter == this.codeLines.length-1 && this.core.instructionCounterNext === undefined) {
+            this.core.isRunning = false;
+            return;
+        }
+        if(this.core.isRunning && this.core.instructionCounterNext === undefined) this.core.instructionCounter++;
+        this.core.instructionCounterNext = undefined;
+    }
+}

@@ -1,0 +1,14 @@
+@stack 2,3,5,7
+
+p(i) := 2;
+outerloop: if p(potentialPrime) < 10 then goto End;
+p(potentialFactor) := 2;
+innerloop: if p(potentialFactor) >= p(potentialPrime) then goto isPrime;
+a := p(potentialPrime) % p(potentialFactor);
+if a = 0 then goto isNotPrime;
+p(potentialFactor) := p(potentialFactor) + 1;
+goto innerloop;
+isPrime: push p(potentialPrime);
+isNotPrime: p(potentialPrime) := p(potentialPrime) + 1;
+goto outerloop;
+End: p(a) := 0;

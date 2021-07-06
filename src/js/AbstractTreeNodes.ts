@@ -1,4 +1,4 @@
-import RuntimeEnv from "./SimpleRuntimeEnv";
+import RuntimeEnv from "./RuntimeEnv";
 
 export type Value = number | string;
 

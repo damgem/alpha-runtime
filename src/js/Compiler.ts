@@ -1,18 +1,49 @@
-import {parse, SyntaxError} from "./parser";
-import { Programm } from "./ParserTreeNodes";
+import {parse, SyntaxError} from "./PegParser";
+import { CodeLine } from "./ParserTreeNodes";
 
-export default function compile(codeString: string): Programm {
+
+const escapeCharReplacements: {[orig: string]: string} = {
+    "\\": "\\\\",
+    "\n": "\\n",
+    "\s": "\\s",
+    "\r": "\\r",
+    "\b": "\\b",
+    "\f": "\\f",
+    "\v": "\\v",
+    "\t": "\\t"
+};
+
+function myEscape(text: string): string {
+
+    return text.split("").map(c => {
+        if(!(c in escapeCharReplacements)) return c;
+        return escapeCharReplacements[c];
+    }).join("");
+}
+
+export interface CompilationResult {
+    successful: boolean;
+    compiledCode?: CodeLine[];
+    errorMessage?: string;
+    context?: string;
+}
+
+export default function compile(codeString: string): CompilationResult {
     try{
-        return parse(codeString);
+        return {successful: true, compiledCode: parse(codeString)};
     }
-    catch(e) {
-        if(e instanceof SyntaxError) {
-            let error: SyntaxError = e;
-            let {start, end} = error.location;
-            console.log(`Syntax Error at ${start.line}:${start.column}-${end.line}:${end.column}: Invalid code "${error.found}" in this context.`);
-            console.log(error);
+    catch(error) {
+        if(error instanceof SyntaxError) {
+            const {start, end} = error.location;           
+
+            return {
+                successful: false,
+                errorMessage: `Syntax Error at ${start.line}:${start.column}-${end.line}:${end.column}: ` + SyntaxError.buildMessage(error.expected, error.found),
+                context: codeString.split("\n").slice(Math.max(0, start.line-2), Math.min(codeString.length, end.line+1)).join("\n")
+            };
         }
-        else window.alert(`Unhandeled Exception: ${e}`);
-        throw e;
+        else {
+            throw error;
+        }
     }
 }

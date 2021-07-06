@@ -4,12 +4,12 @@ Programm
 
 // ---- CodeLine ----
 Line
-  = cl:CodeLine ("\n" / !.)
+  = cl:CodeLine ("\r\n" / "\n" / "\r"  / !.)
   {return cl;}
 
 CodeLine
   = _ label:Label? _ statement:Statement _ ";" _
-  {return new PST.CodeLine(label?label:null, statement);}
+  {return new PST.CodeLine(statement, label);}
   
 Label
   = label:StringConstant _ ":" !(_ "=")
@@ -38,7 +38,8 @@ LinearStatement
   / CallStatement
   / PushStatement
   / PopStatement
-  / StackOperationStatement
+  / NumericStackOperationStatement
+  / BooleanStackOperationStatement
 
 AssignStatement
   = register:Register _ ":=" _ value:NumericValue
@@ -64,9 +65,13 @@ PopStatement
   = "pop" _? value:(Register)?
   {return new PST.PopStatement(value);}
 
-StackOperationStatement
+NumericStackOperationStatement
   = "stack" _ op:NumericOperatator
-  {return new PST.StackOperationStatement(op);}
+  {return new PST.NumericStackOperationStatement(op);}
+
+BooleanStackOperationStatement
+  = "stack" _ op:NumericOperatator
+  {return new PST.BooleanStackOperationStatement(op);}
 
 
 // ---- (Inline) Operations ----
