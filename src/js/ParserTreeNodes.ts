@@ -1,43 +1,40 @@
-import * as AST from "./AbstractTreeNodes";
+import {Value, Address, Label, val2addr, RuntimeEnv, Evalueateable, Operation, Register, Executable} from "./Skeleton";
 import AbstractOperation from "./AbstractOperation";
-import RuntimeEnv from "./RuntimeEnv";
 import {ExecutionError, SyntaxError, ExecutionEnd} from "./ExecutionError";
 
 // ---- Constant ----
-export class Constant<ValueType> implements AST.Evalueateable<ValueType>{
-    private value: ValueType;
-    constructor(value: ValueType) {this.value = value;}
-
-    evaluate(re?: RuntimeEnv) {return this.value;}
+export class Constant<T> implements Evalueateable<T>{
+    private value: T;
+    constructor(value: T) {this.value = value;}
+    evaluate() {return this.value;}
 }
 
 // ---- Register ----
-export class MemoryRegister implements AST.Register  {
-    private address: AST.Evalueateable<AST.Value>;
-    constructor(address: AST.Evalueateable<AST.Value>) {this.address = address;}
+export class MemoryRegister implements Register  {
+    private address: Evalueateable<Value>;
+    constructor(address: Evalueateable<Value>) {this.address = address;}
 
     evaluate(re: RuntimeEnv) {
-        return re.memory.get(String(this.address.evaluate(re)));
+        return re.getMemory(val2addr(this.address.evaluate(re)));
     }
 
     set(value: number, re: RuntimeEnv) {
-        re.memory.set(String(this.address.evaluate(re)), value);
+        re.setMemory(String(this.address.evaluate(re)), value);
     }
 }
 
-export class Accumulator implements AST.Register {
-    evaluate(re: RuntimeEnv) {return re.accumulator;}
-    set(value: number, re: RuntimeEnv){re.accumulator = value;}
+export class Accumulator implements Register {
+    evaluate(re: RuntimeEnv) {return re.getAccumulator();}
+    set(value: Value, re: RuntimeEnv){re.setAccumulator(value);}
 }
 
-export class StackTop implements AST.Register {
-    evaluate(re: RuntimeEnv) {return re.stack.pop();}
-    set(value: number, re: RuntimeEnv){re.stack.push(value);}
-}
+export class StackTop implements Register {
+    evaluate(re: RuntimeEnv) {return re.stackPop();}
+    set(value: Value, re: RuntimeEnv){re.stackPush(value);}
 
 // ---- Operations ----
 type NumericOperator = '+' | '-' | '*' | '/' | '%';
-export class NumericOperation extends AbstractOperation<NumericOperator, number, number> {
+export class NumericOperation extends AbstractOperation<NumericOperator, Value, Value> {
     evaluate(re: RuntimeEnv) {
         let l = this.left.evaluate(re);
         let r = this.right.evaluate(re);
@@ -52,7 +49,7 @@ export class NumericOperation extends AbstractOperation<NumericOperator, number,
 }
 
 type BooleanOperator = '=' | '>' | '>=' | '<' | '<=';
-export class BooleanOperation extends AbstractOperation<BooleanOperator, number, boolean> {
+export class BooleanOperation extends AbstractOperation<BooleanOperator, Value, boolean> {
     evaluate(re: RuntimeEnv) {
         let l = this.left.evaluate(re);
         let r = this.right.evaluate(re);
@@ -67,32 +64,23 @@ export class BooleanOperation extends AbstractOperation<BooleanOperator, number,
 }
 
 // ---- Statements ----
-export class GotoStatement implements AST.Executable {
-    label: AST.Evalueateable<AST.Value>
-    constructor(label: AST.Evalueateable<AST.Value>) {this.label = label;}
-
+export class GotoStatement implements Executable {
+    label: Evalueateable<Value>
+    constructor(label: Evalueateable<Value>) {this.label = label;}
     execute(re: RuntimeEnv) {
-        let labelValue = this.label.evaluate(re);
-        if(typeof(labelValue) === 'number') {
-            re.instructionCounter = labelValue;
-            return;
-        }
-        if(!(labelValue in re.labels))
-            throw new ExecutionError(`Undefined Label ${labelValue}`);
-        re.instructionCounter = re.labels[labelValue];
+        re.goto(this.label.evaluate(re));
     }
 }
 
 export class CallStatement extends GotoStatement {
     execute(re: RuntimeEnv) {
-        re.stack.push(re.instructionCounter);
-        super.execute(re);
+       re.call(this.label.evaluate(re));
     }
 }
 
-export class AssignStatement implements AST.Executable {
-    private register: AST.Register;
-    private value: AST.Evalueateable<number>;
+export class AssignStatement implements Executable {
+    private register: Register;
+    private value: Evalueateable<number>;
 
     constructor(register: AST.Register, value: AST.Evalueateable<number>) {
         this.register = register;

@@ -1,5 +1,4 @@
-import { Evalueateable } from "./AbstractTreeNodes";
-import RuntimeEnv from "./RuntimeEnv";
+import { RuntimeEnv, Evalueateable } from "./Skeleton";
 
 export default abstract class Operation<O, V, R> implements Evalueateable<R> {
     protected operator: O;
