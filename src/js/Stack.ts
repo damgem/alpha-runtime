@@ -5,23 +5,18 @@ export default class Stack<T> {
 
     /**
      * Constructs a new Stack instance
-     * @param onPush value for {@link onPush} callback 
-     * @param onPop value for {@link onPop} callback
+     * @param onChange value for {@link onChange} callback 
      */
-    constructor(onPush?: (pushedValue: T) => void, onPop?: (poppedValue: T) => void) {
-        this.onPush = onPush;
-        this.onPop = onPop;
+    constructor(onChange?: (value: T, type: OnStackChangeEventType) => void) {
+        this.onChange = onChange;
     }   
 
     /**
-     * Callback that gets triggered by {@link push}
+     * Callback that gets triggered by {@link push} and {@link push}.
+     * @param value the value that is being pushed / popped
+     * @param type type of change
      */
-    public onPush?: (pushedValue: T) => void;
-
-    /**
-     * Callback that gets triggered by {@link pop}
-     */
-    public onPop?: (poppedValue: T) => void;
+    public onChange?: (value: T, type: OnStackChangeEventType) => void;
     
     /**
      * Property that is `true` if the stack holds no elements.
@@ -38,12 +33,12 @@ export default class Stack<T> {
     }
 
     /**
-     * Pushes a value ontop the a stack. Triggers {@link onPush}.
+     * Pushes a value ontop the a stack. Triggers {@link onChange}.
      * @param value value to push
      */
     public push(value: T): void {
         this.stack.push(value);
-        this.onPush?.(value);
+        this.onChange?.(value, OnStackChangeEventType.PUSH);
     }
 
     /**
@@ -53,7 +48,7 @@ export default class Stack<T> {
     public pop(): T {
         let value = this.stack.pop();
         if(value === undefined) throw new PopFromEmptyStackError();
-        this.onPop?.(value);
+        this.onChange?.(value, OnStackChangeEventType.POP);
         return value;
     }
 
@@ -64,4 +59,9 @@ export class PopFromEmptyStackError extends Error {
     public constructor() {
         super('Cannot pop from empty stack!');
     }
+}
+
+export enum OnStackChangeEventType {
+    PUSH,
+    POP
 }
