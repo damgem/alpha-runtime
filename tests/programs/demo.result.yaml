@@ -1,0 +1,20 @@
+# This file describes the state the runtime should be in after `demo.alpha`
+# has been executed.
+
+memory:     # expected register values
+  a: -1
+  res: 9
+  1: 17
+  2: 16
+  3: 34
+  x1: 13
+  x2: 21
+  α: 32
+  α1: 42
+  α2: 87
+  γ1: 420
+
+stack:  # expected stack values (first value is bottom most value)
+  - 32
+  - 42
+  - 33

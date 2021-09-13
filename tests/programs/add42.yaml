@@ -1,0 +1,7 @@
+# expected result of helloWorld.alpha
+# see demo.result.yaml for more explanation
+
+memory:
+  1: 10
+  2: 32
+  result: 42

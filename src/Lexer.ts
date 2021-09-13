@@ -89,7 +89,6 @@ export function tokenize(input: string) {
 
     while(input.length > 0) {
 
-        console.log(input);
         let foundSomething = false;
         for(let pi in patterns) {
             const p = patterns[pi];
@@ -97,7 +96,6 @@ export function tokenize(input: string) {
             if(res != null) {
                 const match = res[0];
                 tokens.push([p.toString(), match]);
-                console.log(p, match)
                 input = input.slice(match.length);
                 foundSomething = true;
                 break;
