@@ -1,20 +1,31 @@
-import fs from 'fs';
-import path from 'path';
+import {readFileSync, readdirSync} from 'fs'
+import {basename, resolve, extname} from 'path';
 
-import {tokenize} from '../src/TokenTypes'
+import {tokenize, TokenType, Pattern} from '../src/Tokenizer'
+
+const programDir = resolve(__dirname, 'programs');
 
 function testProgram(filename: string)
 {
     
-    console.log(`### Tokenizing ${path.basename(filename)}`);
-    let fileString = String(fs.readFileSync(path.resolve(__dirname, filename))).trim();
+    console.log(`### Tokenizing ${basename(filename)}`);
+    const fileString = String(readFileSync(resolve(programDir, filename)));
     const tokens = tokenize(fileString);
-    console.log(tokens);
-    console.log("\n");
 
+    const lines = tokens.map((pair) => {
+        const pattern: Pattern = pair[0] as Pattern;
+        let inp: string = pair[1] as string;
+        if(pattern.type === TokenType.SPACE) return null;
+        if(pattern.type === TokenType.NEWLINE) return "\n";
+        inp = inp.replace(/[\r\n]/, "");    // needed for COMMENTS
+        return `${pattern.toString()} "${inp}", `
+    }).join("");
+
+    const output = lines.split('\n').map(l => l.endsWith(", ") ? l.substr(0, l.length-2) : l).join("\n");
+    console.log(output, "\n");
 }
 
-fs.readdirSync(path.resolve(__dirname, 'testPrograms'))
-    .filter(filename => path.extname(filename) == '.alpha')
+readdirSync(resolve(__dirname, 'programs'))
+    .filter(filename => extname(filename) == '.alpha')
     .forEach(filename => testProgram(filename))
 

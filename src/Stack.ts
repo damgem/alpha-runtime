@@ -1,3 +1,5 @@
+import { NULL_LOCATION, RuntimeError } from "./Errors";
+
 /**
  * Simple Stack that supports on push and on pop callbacks.
  */
@@ -47,18 +49,12 @@ export default class Stack<T> {
      */
     public pop(): T {
         let value = this.stack.pop();
-        if(value === undefined) throw new PopFromEmptyStackError();
+        if(value === undefined) throw new RuntimeError(NULL_LOCATION, 'Tries to pop from empty stack');
         this.onChange?.(value, OnStackChangeEventType.POP);
         return value;
     }
 
     private stack: T[] = [];
-}
-
-export class PopFromEmptyStackError extends Error {
-    public constructor() {
-        super('Cannot pop from empty stack!');
-    }
 }
 
 export enum OnStackChangeEventType {

@@ -1,5 +1,5 @@
 {
     "tspegjs": {
-        "customHeader": "// custom import header from ./pegconfig.json\nimport * as PST from './ParserTreeNodes';\n"
+        "customHeader": "import * as AST from '../ASTNodes';\n"
     }
 }

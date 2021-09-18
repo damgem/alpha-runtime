@@ -34,3 +34,4 @@ stack +;    // stack operators!
 push 41;
 pop;
 push 43;
+pop;

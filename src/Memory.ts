@@ -1,3 +1,5 @@
+import { NULL_LOCATION, RuntimeError } from "./Errors";
+
 /**
  * Simple Memory model with on write callback support.
  */
@@ -38,7 +40,7 @@ export default class Memory {
      */
     public read(address: string): number {
         let value = this.memoryCells.get(address);
-        if(value === undefined) throw new UnitializedAccessError(address);
+        if(value === undefined) throw new RuntimeError(NULL_LOCATION, "Access to uninitialized memory", address);
         return value;
     }
 
@@ -55,13 +57,4 @@ export default class Memory {
 
     // map that stores memory cell values
     protected memoryCells: Map<string, number> = new Map();
-}
-
-
-export class UnitializedAccessError extends Error {
-    address: String;
-    public constructor(address: String) {
-        super(`Access to uninitialized memory "${address}"`)
-        this.address = address;
-    }
 }

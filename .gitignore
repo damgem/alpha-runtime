@@ -1,4 +1,4 @@
 lib
 dist
 node_modules
-src/js/parser.ts
+src/pegjs/*.ts

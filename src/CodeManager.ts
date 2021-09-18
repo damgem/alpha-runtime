@@ -1,4 +1,5 @@
-import LineStatement from "./LineStatement";
+import { NULL_LOCATION, RuntimeError } from "./Errors";
+import { CodeLine } from "./ASTNodes";
 
 /**
  * Code Manager that mainly keeps track of what the next statement is.
@@ -26,7 +27,7 @@ export default class CodeManager
      * {@link onInstructionPointerChange} callback
      * @param onHalt value for {@link onHalt} callback
      */
-    public constructor(statements: LineStatement[],
+    public constructor(statements: CodeLine[],
                        onInstructionPointerChange?: (value: number) => void,
                        onHalt?: () => void)
     {
@@ -37,13 +38,13 @@ export default class CodeManager
 
     /**
      * Sets the program. Regenerates the internal properties {@link labelMap}
-     * and {@link isRunning} (but never triggers {@link onHalt}).
+     * and {@link _isRunning} (but never triggers {@link onHalt}).
      * @param statements Program that is executed in this environment
      */
-    public setStatements(statements: LineStatement[])
+    public setStatements(statements: CodeLine[])
     {
         this.statements = statements;
-        this.isRunning = this.instructionPointer < this.statements.length;
+        this._isRunning = this.instructionPointer < this.statements.length;
         this.generateLabelMap();
     }
 
@@ -51,7 +52,6 @@ export default class CodeManager
      * Advances the instruction pointer to the next statement.
      * The next statement is the statement planned by {@link planJump} or if
      * none is planned the statement in the next line.
-     * @returns 
      */
     public advanceInstructionPointer()
     { 
@@ -74,6 +74,19 @@ export default class CodeManager
     }
 
     /**
+     * Returns the current instruction pointer value
+     * @returns instruction pointer
+     */
+    public getInstructionPointer() {
+        return this.instructionPointer;
+    }
+
+    // TODO: Documentation
+    public getStatement(): CodeLine {
+        return this.statements[this.instructionPointer];
+    }
+
+    /**
      * Plans a jump of the address pointer. Multiple calls will overwrite each
      * other with only the last call being planned. Jump will be executed and 
      * cleared by the next {@link advanceInstructionPointer} call.
@@ -87,7 +100,7 @@ export default class CodeManager
         }
         else if(address < 0 || address >= this.statements.length)
         {
-            throw new Error(`Jump to invalid line: ${address}`);
+            throw new RuntimeError(NULL_LOCATION, 'Jump to invalid line', String(address));
         }
 
         console.assert(this.nextInstructionPointer === undefined,
@@ -101,7 +114,7 @@ export default class CodeManager
      */
     public halt()
     {
-        this.isRunning = false;
+        this._isRunning = false;
         this.onHalt?.();
     }
 
@@ -111,7 +124,7 @@ export default class CodeManager
 
         if(num === undefined)
         {
-            throw new Error(`Label not found: ${label}`);
+            throw new RuntimeError(NULL_LOCATION, 'Label not found', label);
         }
 
         return num;
@@ -128,16 +141,21 @@ export default class CodeManager
             {
                 if(this.labelMap.has(label))
                 {
-                    throw new Error(`Duplicate labels ${label}`);
+                    throw new RuntimeError({start:{offset:-1, line: si, column: 0}, end:{offset:-1, line: si, column: label.length}}, 'Duplicate label', label);
                 }
                 this.labelMap.set(label, si);
             }
         }
     }
 
-    private isRunning = true;
+    private _isRunning = true;
 
-    private statements: LineStatement[] = [];
+    // TODO: Documentataion
+    public get isRunning(): boolean {
+        return this._isRunning;
+    }
+
+    private statements: CodeLine[] = [];
     private labelMap: Map<string, number> = new Map<string, number>();
 
     private instructionPointer: number = 0;
