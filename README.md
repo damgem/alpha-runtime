@@ -1,42 +1,66 @@
-# UpperAlpha
+# Alpha Runtime
 
-UpperAlpha is a web-based IDE for a Assemlby language "α-Notation" which has been theorized in the module "Systemnahme Informatik (SS 2021)" at Uni Bonn.
+Alpha Runtime provides a way to execute programs written in the assemlber language "α-Notation".
 
-I started this personal project because of some annoying bugs in [LowerAlpha](https://github.com/SirkoHoeer/LowerAlpha).
-(Okay and mainly because I really enjoy creating grammars 😛)
+The α-Notation is originally a pseudo assembler language that I got introduced to in the module "Systemnahme Informatik (SS 2021)" at Uni Bonn.
+It is a simplified assembler for educational purposes.
 
-## Get Started
-Simply visit [https://damgem.github.io/upperalpha/](https://damgem.github.io/upperalpha/)
+# How to use
 
+Here's the starter template for Node.js and ES6 JS. Make sure to check out the JSDoc documentation for more detailed information!
 
-## Goals
- - **easy to install/use:**
-    
-    A web app is plug'n'play and requires no installation.<br>
-    Also CodeMirror is a simple yet powerful web code editor.
- 
- - **bug free:**
+## Node.js (Typescript)
+```js
+import execute from './alpha-runtime/Executor'
+import parse from './alpha-runtime/Parser'
 
-    The usage of [PEGJS](https://pegjs.org/) allows for well structured code. <br>
-    Typescript is used to make sure everything fits together. 
+const code = String(readFileSync('./alpha-runtime/tests/programs/add42.alpha', 'utf8'));
+const program = parse(code);
+const runtimeState = execute(program);
 
+// do something with the resulting runtimeState
+```
 
-## Build
-You can choose to clone this repo and compile everything yourself.
+You can create a own `Runtime` object with custom callback functions and pass this runtime into the `execute` function.
 
-```bash
-git clone https://github.com/damgem/upperalpha.git
-cd upperalpha
-npm install
+```js
+const runtime = new Runtime(program, {
+    onMemoryWrite: (writeAddress: String, newValue: number, wasInitialized: boolean) => console.log('memory write'),
+    onStackChange: (value: number, type: OnStackChangeEventType) => console.log('stack change'),
+    onCallStackChange?: (value: number, type: OnStackChangeEventType) => console.log('call stack change'),
+    onInstructionPointerChange?: (value: number) => console.log('instruction pointer change'),
+    onProgramEnd?: () => console.log('end of program')
+});
+
+const runtimeState = execute(program, runtime);
+```
+
+## ES6 JS
+Make sure to build everything via webpack
+```node
+npm i
 npm run build
 ```
-The resulting build will be located in `./dist`.
 
+```html
+<script src='./alpha-runtime/dist/index.js'></script>
+<script>
+    let code = "ρ(1) := 10;\nρ(2) := 32;\nρ(result) := ρ(1) + ρ(2);"
+    let program = parse(code);
+    let runtimeState = execute(program);
+</script>
+```
 
-If you'd like to change the build process, the current build process consists of:
- - creating a parser from `grammar.pegjs` - parser can be created as a typescript module via the `ts-pegjs` node module
- - transpiling all typescript source files into ES2015 javascript files
- - bundling all javascript files via webpack
+# Structure
+* `parse()` takes a string and convertes it into an AST. This is done via a [PEGJS](https://pegjs.org/) grammar that combines lexer and parser.
+* `execute()` operates on a program and a runtime and keeps executing the next statement until the program halts.
+* `Runtime` consists of 4 parts:
+    * `stack` and `callstack`, which both use the custom `Stack` class 
+    * `memory` which uses the custom `Memory` class
+    * `codeManager` which uses the `CodeManager` class
 
-## Contribution
-I'm happy about every feature request and bug fix. 🙂
+You can learn more about these in the JSDoc of the individual classes.
+
+# See also
+This has been done before with Java and JavaFX, see [LowerAlpha](https://github.com/SirkoHoeer/LowerAlpha).
+This project aims to be more robust, reliable and user friendly than LowerAlpha.
