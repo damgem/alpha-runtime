@@ -4,6 +4,7 @@ import Runtime from "./Runtime";
 
 export class Literal<T> extends AST.Supplier<T>
 {
+    type = 'Literal';
     private value: T;
     
     public constructor(value: T, loc: Location)
@@ -20,6 +21,7 @@ export class Literal<T> extends AST.Supplier<T>
 
 export class Register extends AST.Register
 {
+    type = 'Register';
     private address: AST.Supplier<string | number>;
 
     public constructor(address: AST.Supplier<string | number>, loc: Location)
@@ -44,6 +46,7 @@ export class Register extends AST.Register
 type CalculationOperator = '+' | '-' | '*' | '/' | '%';
 export class Calculation extends AST.Supplier<number>
 {
+    type = 'Calculation';
     private left: AST.Supplier<number>
     private right: AST.Supplier<number>
     private operator: CalculationOperator
@@ -72,6 +75,7 @@ export class Calculation extends AST.Supplier<number>
 type ComparisonOperator = '=' | '>' | '>=' | '<' | '<=';
 export class Comparison extends AST.Supplier<boolean>
 {
+    type = 'Comparison';
     private left: AST.Supplier<number>
     private right: AST.Supplier<number>
     private operator: ComparisonOperator
@@ -99,6 +103,7 @@ export class Comparison extends AST.Supplier<boolean>
 
 export class StackTop extends AST.Register
 {
+    type = 'StackTop';
     public constructor()
     {
         super(NULL_LOCATION);
@@ -118,6 +123,7 @@ export class StackTop extends AST.Register
 
 export class Goto extends AST.Executable
 {
+    type = 'Goto';
     private label: AST.Supplier<number | string>
 
     public constructor(label: AST.Supplier<number | string>, loc: Location)
@@ -135,6 +141,7 @@ export class Goto extends AST.Executable
 
 export class Call extends Goto
 {
+    type = 'Call';
     public execute(ctx: Runtime)
     {
         ctx.callStack.push(ctx.codeManager.getInstructionPointer());
@@ -144,6 +151,7 @@ export class Call extends Goto
 
 export class Return extends AST.Executable
 {
+    type = 'Return';
     public constructor(loc: Location) {
         super(loc);
     }
@@ -156,6 +164,7 @@ export class Return extends AST.Executable
 
 export class Definition extends AST.Executable
 {
+    type = 'Definition';
     private register: AST.Register;
     private value: AST.Supplier<number>;
 
@@ -175,6 +184,7 @@ export class Definition extends AST.Executable
 
 export class Conditional extends AST.Executable
 {
+    type = 'Conditional';
     private condition: AST.Supplier<boolean>;
     private code: AST.Executable;
 
@@ -194,6 +204,7 @@ export class Conditional extends AST.Executable
 
 export class StackPush extends AST.Executable
 {
+    type = 'StackPush';
     private value?: AST.Supplier<number>;
 
     public constructor(value: AST.Supplier<number> | undefined, loc: Location)
@@ -212,6 +223,7 @@ export class StackPush extends AST.Executable
 
 export class StackPop extends AST.Executable
 {
+    type = 'StackPop';
     private register: AST.Register | undefined;
     
     public constructor(register: AST.Register | undefined, loc: Location)
@@ -229,6 +241,7 @@ export class StackPop extends AST.Executable
 
 export class CodeLine extends AST.Executable
 {
+    type = 'CodeLine';
     public readonly label?: string;
     private statement: AST.Executable;
 
@@ -236,11 +249,36 @@ export class CodeLine extends AST.Executable
     {
         super(loc);
         this.label = label;
-        this.statement = statement
+        this.statement = statement;
     }
 
     protected execute(ctx: Runtime)
     {
         this.statement.safeExecute(ctx);
+    }
+}
+
+export class EmptyLine extends CodeLine
+{
+    type = 'EmptyLine';
+
+    public constructor(loc: Location)
+    {
+        super(undefined, new NullFunction(), loc);
+    }
+}
+
+export class NullFunction extends AST.Executable
+{
+    type = 'NullFunction';
+
+    public constructor()
+    {
+        super(NULL_LOCATION);
+    }
+
+    protected execute(ctx: Runtime)
+    {
+
     }
 }

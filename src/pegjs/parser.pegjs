@@ -3,7 +3,7 @@ PROGRAM
 	= l:LINE* ll:LAST_LINE {return l === undefined ? [ll] : [...l, ll];}
 
 // ---- Line ----
-LINE = cl:CodeLine? Comment? "\r"?"\n" {return cl}
+LINE = cl:CodeLine? Comment? "\r"?"\n" {return cl ?? }
 LAST_LINE = cl:CodeLine? Comment? !. {return cl}
 
 CodeLine
@@ -27,21 +27,21 @@ IfThen
 	{return new AST.Conditional(If, then, location());}
 
 Statement
-	= Definition
-	/ GotoStatement
-    / CallStatement
-    / ReturnStatement
-    / StackPush
-    / StackPop
-    / StackCalculation
-    / StackComparison
+	= GotoStatement
+  / CallStatement
+  / ReturnStatement
+  / StackPush
+  / StackPop
+  / StackCalculation
+  / StackComparison
+  / Definition
 
 Definition
-  = register:Register _ ":=" _ value:Value
+  = register:Register _ ":=" _ value:(Calculation / Value)
   {return new AST.Definition(register, value, location());}
 
 GotoStatement
-  = "goto" __ address:Value
+  = "goto" __ address:(Value / RegularIdentifier)
   {return new AST.Goto(address, location());}
 
 CallStatement
@@ -55,14 +55,12 @@ ReturnStatement
 StackPush
   // change to "push" (__ value:Value)? would give better error underlining
   = "push" __ value:Value?
-  {
-    return new AST.StackPush(value, location());
-  }
+  {return new AST.StackPush(value, location());}
   
 StackPop
   // change to "pop" (__ value:Register)? would give better error underlining
-  = "pop" __ value:Register?
-  {return new AST.StackPop(value, location());}
+  = "pop" valueContainer:(__ Register)?
+  {return new AST.StackPop(valueContainer?.at(1), location());}
 
 // ---- Operations ----
 StackCalculation
@@ -85,37 +83,37 @@ CalculationOperatator = [+*\-\/%]
 ComparisonOperator = "=" / [<>] "="?
 
 // ---- VALUE ----
-Value
+Value "value"
 	= Number
   / Register
 
-Register
+Register "register"
   = SpecialRegister
   / RegularRegister
 
-RegularRegister
+RegularRegister "regular_register"
 	= "ρ(" _ address:(RegularIdentifier / Value) _ ")"
   {return new AST.Register(address, location());}
 
-SpecialRegister
+SpecialRegister "special_register"
   = address:SpecialIdentifier
   {return new AST.Register(address, location());}
 
-RegularIdentifier
+RegularIdentifier "regular_identifier"
   = [a-zA-Z]("_"* [a-zA-Z0-9]+)*
   {return new AST.Literal(text(), location());}
 
-SpecialIdentifier
+SpecialIdentifier "special_identifier"
 	= [α-πσ-ω]("_"* [0-9]+)*
 	{return new AST.Literal(text(), location());}
     
-Number
+Number "number"
 	= ("-" _)? ([0-9]+ "."? [0-9]* / "." [0-9]+)
-	{return new AST.Literal(text(), location());}
+	{return new AST.Literal(parseInt(text()), location());}
 
 // ---- Formatting ----
-_ "whitespace"
+_ "optional_whitespace"
   = [ \t]*
   
-__ "forced_whitespace"
+__ "whitespace"
   = [ \t]+

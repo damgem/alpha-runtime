@@ -3,8 +3,8 @@ import { NULL_LOCATION, RuntimeError } from "./Errors";
 /**
  * Simple Stack that supports on push and on pop callbacks.
  */
-export default class Stack<T> {
-
+export default class Stack<T>
+{
     /**
      * Constructs a new Stack instance
      * @param onChange value for {@link onChange} callback 
@@ -52,6 +52,15 @@ export default class Stack<T> {
         if(value === undefined) throw new RuntimeError(NULL_LOCATION, 'Tries to pop from empty stack');
         this.onChange?.(value, OnStackChangeEventType.POP);
         return value;
+    }
+
+    /**
+     * Returns a copy of the internal stack which is realized as an array.
+     * @returns array
+     */
+    getSnapshot()
+    {
+        return [...this.stack];
     }
 
     private stack: T[] = [];

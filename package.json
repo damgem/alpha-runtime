@@ -4,7 +4,7 @@
   "description": "Simple Web-IDE for AsseblyCode written in the α-Notation",
   "main": "index.js",
   "scripts": {
-    "test": "npx ts-node ./tests/Tokenizer.test.ts",
+    "test": "npx ts-node ./tests/Parser.test.ts",
     "build": "npm run build:pegjs && npx webpack",
     "type-check": "tsc",
     "type-check:watch": "tsc --watch & npm run watch:pegjs",
@@ -26,6 +26,8 @@
     "@babel/core": "^7.15.5",
     "@babel/preset-env": "^7.15.6",
     "@babel/preset-typescript": "^7.15.0",
+    "@types/git-diff": "^2.0.2",
+    "@types/js-yaml": "^4.0.3",
     "@types/node": "^16.9.1",
     "@types/webpack-env": "^1.16.2",
     "babel-loader": "^8.2.2",
@@ -39,6 +41,11 @@
     "ts-pegjs": "^1.2.0",
     "typescript": "^4.4.3",
     "webpack": "^5.52.1",
-    "webpack-cli": "^4.8.0"
+    "webpack-cli": "^4.8.0",
+    "yaml-diff": "^0.1.1"
+  },
+  "dependencies": {
+    "git-diff": "^2.0.6",
+    "yaml-js": "^0.2.3"
   }
 }

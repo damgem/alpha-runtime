@@ -4,6 +4,7 @@ import { AlphaError, RuntimeError, Location, NULL_LOCATION } from "./Errors";
 abstract class Node
 {
     public location: Location
+    public abstract type: string;
 
     public constructor(loc: Location)
     {

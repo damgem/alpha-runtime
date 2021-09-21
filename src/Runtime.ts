@@ -49,4 +49,16 @@ export default class Runtime {
      * Code Manager that manages the instruction pointer among other things.
      */
     public codeManager: CodeManager;
+
+    /**
+     * Returns a snapshot of the internal memory and stack state.
+     * @returns snapshot
+     */
+    public getSnapshot()
+    {
+        return {
+            memory: this.memory.getSnapshot(),
+            stack: this.stack.getSnapshot()
+        }
+    }
 }

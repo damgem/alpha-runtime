@@ -77,11 +77,16 @@ export default class CodeManager
      * Returns the current instruction pointer value
      * @returns instruction pointer
      */
-    public getInstructionPointer() {
+    public getInstructionPointer()
+    {
         return this.instructionPointer;
     }
 
-    // TODO: Documentation
+    // TODO: rename (single line) statement -> instruction
+    /**
+     * Returns the current statement that the instruction pointer is pointing to
+     * @returns the current statement
+     */
     public getStatement(): CodeLine {
         return this.statements[this.instructionPointer];
     }
@@ -135,7 +140,7 @@ export default class CodeManager
 
         for(let si = 0; si < this.statements.length; si++)
         {
-            let label = this.statements[si].label;
+            let label = this.statements[si].label ?? undefined; // replace null by undefined
 
             if(label !== undefined)
             {

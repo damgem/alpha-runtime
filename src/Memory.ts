@@ -54,7 +54,28 @@ export default class Memory {
         this.memoryCells.set(address, value);
         this.onWrite?.(address, value, isInit);
     }
+ 
+    /**
+     * Returns a plain java object that contains a snapshot of the current state
+     * @returns memory snapshot
+     */
+    public getSnapshot() : MemorySnapshot
+    {
+        const snapshot: MemorySnapshot = {};
+        for(let [key, value] of this.memoryCells)
+        {
+            snapshot[key] = value;
+        }
+        return snapshot; 
+    }
 
     // map that stores memory cell values
     protected memoryCells: Map<string, number> = new Map();
+}
+
+/**
+ * Snapshot of memory with every key holding the value of the memory cell with that same name 
+ */
+export interface MemorySnapshot {
+    [key: string]: number
 }

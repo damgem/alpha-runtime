@@ -6,16 +6,16 @@
 ρ(1) := 17;
 ρ(2) := 1;
 ρ(3) := 2 * ρ(ρ(2));        // nested register access
-ρ(2) := ρ(ρ(2) + 1) - 1;    // even more nested register access
+ρ(2) := ρ(ρ(2)) - 1;
 
 // and even characters and numbers in combination!
 ρ(x1) := 2
-loop: ρ(x1) = ρ(x1) + 1;
+loop: ρ(x1) := ρ(x1) + 1;
 if ρ(x1) < 13 then goto loop;   // goto <label>
 
 goto 17;    // goto <lineNumber>
-ρ(x1) = 0;  // gets skipped because of goto
-ρ(x2) = 21;
+ρ(x1) := 0;  // gets skipped because of goto
+ρ(x2) := 21;
 
 // showcase special register
 α := 11 % 8;    // there is MOD!
